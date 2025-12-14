@@ -9,6 +9,8 @@ from app.api.v1.auth import router as auth_router
 from sqlalchemy import text
 from app.db.session import SessionLocal
 from app.api.v1.permisos import router as permisos_router
+from app.api.v1.presupuestos import router as presupuestos_router
+from app.api.v1.pagos import router as pagos_router
 
 app = FastAPI(title="Compras API")
 
@@ -51,6 +53,8 @@ app.include_router(reqs_router)
 app.include_router(cot_router)
 app.include_router(oc_router)
 app.include_router(permisos_router)
+app.include_router(presupuestos_router)
+app.include_router(pagos_router)
 
 
 

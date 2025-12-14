@@ -1,6 +1,6 @@
 from sqlalchemy import Integer, String, ForeignKey, DateTime, Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from app.db.base import Base
 
 # ---- Catálogos ----
@@ -136,5 +136,58 @@ class Permiso(Base):
     clasificador = relationship("Clasificador")
     departamento = relationship("Departamento")
     perfil = relationship("Perfil", back_populates="permisos")
-    
+
+# ---- Presupuestos ----
+class Presupuesto(Base):
+    __tablename__ = "presupuesto"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    departamento_id: Mapped[int] = mapped_column(ForeignKey("departamento.id"), nullable=False)
+    clasificador_id: Mapped[int] = mapped_column(ForeignKey("clasificador.id"), nullable=False)
+    unidad_negocio_id: Mapped[int] = mapped_column(ForeignKey("unidad_negocio.id"), nullable=False)
+    monto: Mapped[float] = mapped_column(Float, nullable=False)
+    periodo: Mapped[str] = mapped_column(String(50), nullable=False)  # Ej: "2025-Q1", "2025-01", "2025"
+    descripcion: Mapped[str] = mapped_column(String(255), nullable=True)
+    fecha_creacion: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    # Relaciones
+    departamento: Mapped["Departamento"] = relationship()
+    clasificador: Mapped["Clasificador"] = relationship()
+    unidad_negocio: Mapped["UnidadNegocio"] = relationship()
+
+# ---- Programación de Pagos ----
+class ProgramacionPago(Base):
+    __tablename__ = "programacion_pago"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    orden_compra_id: Mapped[int] = mapped_column(ForeignKey("orden_compra.id"), nullable=False)
+    estatus: Mapped[str] = mapped_column(String(50), default="BORRADOR")  # BORRADOR → PRIMERA_APROBACION → SEGUNDA_APROBACION → APROBADA
+    fecha_creacion: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    aprobador_1: Mapped[int] = mapped_column(Integer, nullable=True)  # ID del primer aprobador
+    fecha_aprobacion_1: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    aprobador_2: Mapped[int] = mapped_column(Integer, nullable=True)  # ID del segundo aprobador
+    fecha_aprobacion_2: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+
+    # Relaciones
+    orden_compra: Mapped["OrdenCompra"] = relationship()
+    detalles: Mapped[list["DetallePago"]] = relationship(back_populates="programacion", cascade="all, delete-orphan")
+
+
+class DetallePago(Base):
+    __tablename__ = "detalle_pago"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    programacion_pago_id: Mapped[int] = mapped_column(ForeignKey("programacion_pago.id"), nullable=False)
+    unidad_negocio_id: Mapped[int] = mapped_column(ForeignKey("unidad_negocio.id"), nullable=False)
+    fecha_pago: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    monto: Mapped[float] = mapped_column(Float, nullable=False)
+    estatus: Mapped[str] = mapped_column(String(50), default="PENDIENTE")  # PENDIENTE → PAGADO
+    fecha_pago_realizado: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    referencia: Mapped[str] = mapped_column(String(255), nullable=True)  # Número de referencia/comprobante
+    observaciones: Mapped[str] = mapped_column(String(500), nullable=True)
+
+    # Relaciones
+    programacion: Mapped["ProgramacionPago"] = relationship(back_populates="detalles")
+    unidad_negocio: Mapped["UnidadNegocio"] = relationship()
+
 
